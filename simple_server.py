@@ -11,8 +11,6 @@ __author__ = 'Reza Lotun'
 
 from datetime import datetime
 
-from twisted.internet.protocol import Protocol, Factory
-from twisted.web import resource
 from twisted.web.static import File
 from twisted.internet import task
 
@@ -50,19 +48,6 @@ class Testhandler(WebSocketHandler):
         # here is a good place to deregister this handler object
 
 
-class FlashSocketPolicy(Protocol):
-    """ A simple Flash socket policy server.
-    See: http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html
-    """
-    def connectionMade(self):
-        policy = '<?xml version="1.0"?><!DOCTYPE cross-domain-policy SYSTEM ' \
-                 '"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">' \
-                 '<cross-domain-policy><allow-access-from domain="*" to-ports="*" /></cross-domain-policy>'
-        self.transport.write(policy)
-        self.transport.loseConnection()
-
-
-
 if __name__ == "__main__":
     from twisted.internet import reactor
 
@@ -72,9 +57,4 @@ if __name__ == "__main__":
     site = WebSocketSite(root)
     site.addHandler('/test', Testhandler)
     reactor.listenTCP(8080, site)
-    # run policy file server
-    factory = Factory()
-    factory.protocol = FlashSocketPolicy
-    reactor.listenTCP(843, factory)
     reactor.run()
-

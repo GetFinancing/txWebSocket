@@ -9,6 +9,8 @@ from hashlib import sha1
 
 from twisted.internet.main import CONNECTION_DONE
 from twisted.internet.error import ConnectionDone
+from twisted.internet.protocol import Protocol, ClientFactory
+from twisted.internet import reactor, defer
 from twisted.python.failure import Failure
 
 from websocket import WebSocketHandler, WebSocketFrameDecoder
@@ -17,7 +19,7 @@ from websocket import WebSocketSite, WebSocketTransport, WebSocketHybiTransport
 from websocket import DecodingError, OPCODE_PING, OPCODE_TEXT
 
 from twisted.web.resource import Resource
-from twisted.web.server import Request, Site
+from twisted.web.server import Request
 from twisted.web.test.test_web import DummyChannel
 from twisted.trial.unittest import TestCase
 
@@ -73,6 +75,46 @@ class TestHandler(WebSocketHandler):
     def connectionLost(self, reason):
         self.lostReason = reason
 
+
+
+class TestGettingPolicyFile(TestCase):
+
+    def setUp(self):
+        self.listener = reactor.listenTCP(0, WebSocketSite(Resource()))
+        self.addCleanup(self.listener.stopListening)
+
+    def testGetPolicyFile(self):
+
+        class PolicyRequest(Protocol):
+
+            def __init__(self, deffered):
+                self.done = deffered
+
+            def connectionMade(self):
+                request = "<policy-file-request/>%c" % (0, )
+                self.transport.write(request)
+
+            def dataReceived(self, data):
+                self.transport.loseConnection()
+                self.done.callback(data)
+
+        d = defer.Deferred()
+        factory = ClientFactory()
+        factory.protocol = lambda : PolicyRequest(d)
+
+        port = self.listener._realPortNumber
+        reactor.connectTCP('127.0.0.1', port, factory)
+
+        def asserts(received):
+            policy = (
+                '<?xml version="1.0"?><!DOCTYPE cross-domain-policy SYSTEM '
+                '"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">'
+                '<cross-domain-policy><allow-access-from domain="*" '
+                'to-ports="*" /></cross-domain-policy>')
+            self.assertEqual(policy, received)
+
+        d.addCallback(asserts)
+        return d
 
 
 class WebSocketSiteTestCase(TestCase):

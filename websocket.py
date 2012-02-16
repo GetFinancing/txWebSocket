@@ -22,7 +22,7 @@ import struct
 from twisted.internet import interfaces
 from twisted.python import log
 from twisted.web._newclient import makeStatefulDispatcher
-from twisted.web.http import datetimeToString
+from twisted.web.http import datetimeToString, HTTPChannel
 from twisted.web.http import _IdentityTransferDecoder
 from twisted.web.server import Request, Site, version, unquote
 from zope.interface import implements
@@ -344,6 +344,21 @@ class WebSocketRequest(Request):
             return
 
 
+class _HttpChannel(HTTPChannel):
+
+    def dataReceived(self, data):
+        if data.startswith("<policy-file-request/>"):
+
+            policy = (
+                '<?xml version="1.0"?><!DOCTYPE cross-domain-policy SYSTEM '
+                '"http://www.macromedia.com/xml/dtds/cross-domain-policy.dtd">'
+                '<cross-domain-policy><allow-access-from domain="*" '
+                'to-ports="*" /></cross-domain-policy>')
+            self.transport.write(policy)
+            self.transport.loseConnection()
+        else:
+            return HTTPChannel.dataReceived(self, data)
+
 
 class WebSocketSite(Site):
     """
@@ -355,6 +370,7 @@ class WebSocketSite(Site):
     @type supportedProtocols: C{list}
     """
     requestFactory = WebSocketRequest
+    protocol = _HttpChannel
 
     def __init__(self, resource, logPath=None, timeout=60*60*12,
                  supportedProtocols=None):

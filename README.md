@@ -3,12 +3,9 @@ Twisted WebSocket Server
 
 To run:
 
-    $ sudo python simple_server.py
+    $ python simple_server.py
 
 In your browser go to http://localhost:8080.
-
-N.B.: Why sudo? It's because the simple server hosts a flash socket policy file on port
-843. This is optional, of course.
 
 Notes
 =====
@@ -26,7 +23,7 @@ of Chrome 6.
 
 If using browsers that do *not* support WebSockets, consider using a fallabck
 implementation to Flash, as seen in http://github.com/gimite/web-socket-js. The
-bundled `test_server.py` will also start a simple Flash Socket Policy server
+bundled `test_server.py` also serves a flash socket policy file
 (see http://www.adobe.com/devnet/flashplayer/articles/socket_policy_files.html)
 and should be immediately usable with `web-socket-js`.
 
